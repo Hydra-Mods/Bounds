@@ -37,6 +37,7 @@ end
 function ui.drawTimer()
    local timerText = ui.updateTimer()
    local timerFont = love.graphics.newFont(20)
+
    love.graphics.setFont(timerFont)
    love.graphics.print(timerText, love.graphics.getWidth() / 2 - timerFont:getWidth(timerText) / 2, 20)
 end

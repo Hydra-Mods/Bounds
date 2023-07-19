@@ -59,8 +59,6 @@ function collision.checkPlayerCollision(player, tileMap, tileX, tileY)
 end
 
 function collision.checkPlayerBounds(player, tileMap, tileX, tileY, tileType)
-   -- Check if the player's position intersects with a tile of the specified type
-
    if tileMap[tileY] and tileMap[tileY][tileX] then
       local tile = tileMap[tileY][tileX]
       return tile == tileType

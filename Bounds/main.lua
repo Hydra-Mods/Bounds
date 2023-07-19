@@ -2,6 +2,7 @@ local ui = require("ui")
 local level = require("level")
 local collision = require("collision")
 local triggers = require("triggers1")
+local gamestate = require("gamestate")
 
 -- Define variables for player, spawn/end points
 local player = {}
@@ -95,8 +96,7 @@ function love.load()
    -- Create explosions based on the trigger data
    for _, triggerData in ipairs(triggers) do
       if type(triggerData[1]) == "table" then
-         -- Handle nested trigger data
-         for _, nestedTriggerData in ipairs(triggerData) do
+         for _, nestedTriggerData in ipairs(triggerData) do -- Handle nested trigger data
             local explosion = {
                x = nestedTriggerData[1],
                y = nestedTriggerData[2],
@@ -106,11 +106,11 @@ function love.load()
                duration = 1,
                color = {r = nestedTriggerData[4], g = nestedTriggerData[5], b = nestedTriggerData[6]}
             }
+
             table.insert(explosions, explosion)
          end
       else
-         -- Handle single trigger data
-         local explosion = {
+         local explosion = { -- Handle single trigger data
             x = triggerData[1],
             y = triggerData[2],
             active = false,
@@ -119,6 +119,7 @@ function love.load()
             duration = 1,
             color = {r = triggerData[4], g = triggerData[5], b = triggerData[6]}
          }
+
          table.insert(explosions, explosion)
       end
    end
@@ -154,24 +155,17 @@ function love.update(dt)
    local playerTileX = math.floor((newX + player.width / 2) / TILE_SIZE) + 1
    local playerTileY = math.floor((newY + player.height / 2) / TILE_SIZE) + 1
 
-   -- Check if the player's potential new tile is void
-   if tileMap[playerTileY][playerTileX] == "0" then
-      -- Handle collision with void tile (stop player movement)
-      if player.velocityX < 0 and tileMap[playerTileY][playerTileX+1] ~= "0" then
-         -- Sliding along the left wall
-         newX = player.x
+   if tileMap[playerTileY][playerTileX] == "0" then -- Check if the player's potential new tile is void
+      if player.velocityX < 0 and tileMap[playerTileY][playerTileX+1] ~= "0" then -- Handle collision with void tile (stop player movement)
+         newX = player.x -- Sliding along the left wall
       elseif player.velocityX > 0 and tileMap[playerTileY][playerTileX-1] ~= "0" then
-         -- Sliding along the right wall
-         newX = player.x
+         newX = player.x -- Sliding along the right wall
       elseif player.velocityY < 0 and tileMap[playerTileY+1][playerTileX] ~= "0" then
-         -- Sliding along the top wall
-         newY = player.y
+         newY = player.y -- Sliding along the top wall
       elseif player.velocityY > 0 and tileMap[playerTileY-1][playerTileX] ~= "0" then
-         -- Sliding along the bottom wall
-         newY = player.y
+         newY = player.y -- Sliding along the bottom wall
       else
-         -- Stop player movement when not sliding along a wall
-         newX = player.x
+         newX = player.x -- Stop player movement when not sliding along a wall
          newY = player.y
       end
    elseif tileMap[playerTileY][playerTileX] == "e" then
@@ -237,6 +231,7 @@ function love.draw()
       for x = 1, #tileMap[y] do
          local tileType = tileMap[y][x]
          local tileImage = tileImages[tileType]
+
          love.graphics.draw(tileImage, (x - 1) * TILE_SIZE, (y - 1) * TILE_SIZE)
       end
    end
@@ -259,7 +254,7 @@ function love.draw()
 
 	ui.drawTimer()
 
-ui.drawLevelIndicator()
+	ui.drawLevelIndicator()
 
    -- Draw player
    love.graphics.setColor(255, 255, 255) -- Set color to white
@@ -317,14 +312,11 @@ ui.drawLevelIndicator()
 end
 
 function resetLevel()
-  -- Load the tile map from tilemap.csv
-  tileMap = level.load()
+  tileMap = level.load() -- Load the tile map from tilemap.csv
 
-  -- Clear existing explosions
-  explosions = {}
+  explosions = {} -- Clear existing explosions
 
-  -- Create explosions based on the explosionSequence data
-  for _, explosionData in ipairs(explosionSequence) do
+  for _, explosionData in ipairs(explosionSequence) do -- Create explosions based on the explosionSequence data
     local explosion = {
       x = explosionData.x,
       y = explosionData.y,
@@ -333,11 +325,11 @@ function resetLevel()
       delay = explosionData.delay,
       duration = explosionData.duration,
     }
+
     table.insert(explosions, explosion)
   end
 
-  -- Calculate the center position of the spawn platform
-  local spawnX, spawnY
+  local spawnX, spawnY -- Calculate the center position of the spawn platform
 
   for y = 1, #tileMap do
     for x = 1, #tileMap[y] do

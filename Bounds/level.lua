@@ -2,16 +2,17 @@ local level = {}
 local currentLevel = 1
 local totalLevels = 3  -- Update with the total number of levels you have
 
-function level.load()
-   -- Load the tile map from the current level file
+function level.load() -- Load the tile map from the current level file
    local file = string.format("level%s.csv", currentLevel)
    local tileMap = {}
 
    for line in love.filesystem.lines(file) do
       local row = {}
+
       for tile in line:gmatch("[^,]+") do
          table.insert(row, tile)
       end
+
       table.insert(tileMap, row)
    end
 
@@ -20,9 +21,11 @@ end
 
 function level.nextLevel()
    currentLevel = currentLevel + 1
+
    if currentLevel > totalLevels then
       currentLevel = 1
    end
+
    return level.load()
 end
 
