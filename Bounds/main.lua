@@ -1,6 +1,7 @@
+local ui = require("ui")
 local level = require("level")
 local collision = require("collision")
-local explosion = require("explosion")
+local triggers = require("triggers1")
 
 -- Define variables for player, spawn/end points
 local player = {}
@@ -33,13 +34,13 @@ local tileImages = {
 }
 
 local tileMap = {} -- Define the tile map with the appropriate tile types
+local explosions = {}
+local currentExplosionIndex = 1  -- Index of the current explosion
 
 function love.load()
    -- Set the window dimensions
    love.window.setMode(800, 600)
-
-   -- Load the tile map from tilemap.csv
-   tileMap = level.load()
+   love.window.setTitle("Blast Runner")
 
    -- Initialize the player position, size, and velocity
    player.x = 0
@@ -48,6 +49,8 @@ function love.load()
    player.height = TILE_SIZE / 2
    player.velocityX = 0
    player.velocityY = 0
+
+	tileMap = level.load()
 
    -- Iterate over the tile map to find the spawn point and end point
    for y = 1, #tileMap do
@@ -84,10 +87,41 @@ function love.load()
    player.x = spawnX + TILE_SIZE / 2 - player.width / 2
    player.y = spawnY + TILE_SIZE / 2 - player.height / 2
 
-   startTime = love.timer.getTime()  -- Store the starting time
-   
-   -- Load the explosion sequences from the CSV file
-   explosion.loadSequencesFromCSV("explosion1.csv")
+	ui.initLevel(1)
+
+   -- Clear existing explosions
+   explosions = {}
+
+   -- Create explosions based on the trigger data
+   for _, triggerData in ipairs(triggers) do
+      if type(triggerData[1]) == "table" then
+         -- Handle nested trigger data
+         for _, nestedTriggerData in ipairs(triggerData) do
+            local explosion = {
+               x = nestedTriggerData[1],
+               y = nestedTriggerData[2],
+               active = false,
+               timer = 0,
+               delay = nestedTriggerData[3],
+               duration = 1,
+               color = {r = nestedTriggerData[4], g = nestedTriggerData[5], b = nestedTriggerData[6]}
+            }
+            table.insert(explosions, explosion)
+         end
+      else
+         -- Handle single trigger data
+         local explosion = {
+            x = triggerData[1],
+            y = triggerData[2],
+            active = false,
+            timer = 0,
+            delay = triggerData[3],
+            duration = 1,
+            color = {r = triggerData[4], g = triggerData[5], b = triggerData[6]}
+         }
+         table.insert(explosions, explosion)
+      end
+   end
 end
 
 function love.update(dt)
@@ -146,15 +180,53 @@ function love.update(dt)
          levelCompleteTime = currentTime
          levelComplete = true
          gameWon = true
-         -- You can add level progression code here
+         ui.setLevelCompleteTime(currentTime)  -- Set the level complete time in the UI
+         -- Additional logic for advancing to the next level
       end
    end
 
    -- Update the player's position
    player.x = newX
    player.y = newY
-end
 
+	local currentTime = ui.updateTimer()
+
+   -- Update explosions
+   for _, triggerData in ipairs(triggers) do
+      local activeExplosions = {}  -- Keep track of active explosions for each trigger index
+
+      for _, explosionData in ipairs(triggerData) do
+         local explosion = {
+            x = explosionData[1],
+            y = explosionData[2],
+            active = false,
+            timer = 0,
+            delay = explosionData[3],
+            duration = 0.3,
+            color = {r = explosionData[4], g = explosionData[5], b = explosionData[6]}
+         }
+
+         if not explosion.active and explosion.timer >= explosion.delay then
+            -- Activate the explosion
+            explosion.active = true
+            table.insert(activeExplosions, explosion)  -- Add the active explosion to the list
+         end
+
+         if explosion.active and explosion.timer >= explosion.duration then
+            -- Deactivate the explosion
+            explosion.active = false
+            explosion.timer = 0  -- Reset the timer for the next activation
+         end
+
+         explosion.timer = explosion.timer + dt  -- Update the timer for the explosion
+      end
+
+      -- Update the explosions list with the active explosions
+      for _, activeExplosion in ipairs(activeExplosions) do
+         table.insert(explosions, activeExplosion)
+      end
+   end
+end
 
 function love.draw()
    -- This function runs every frame after update()
@@ -169,42 +241,29 @@ function love.draw()
       end
    end
 
+	love.graphics.setColor(255, 255, 255)
+
    -- Draw explosions
-   for i, explosion in ipairs(explosion.getCurrentExplosions()) do
+   for _, explosion in ipairs(explosions) do
       if explosion.active then
-         love.graphics.setColor(explosion.r, explosion.g, explosion.b, 255)
-         love.graphics.circle("fill", explosion.x, explosion.y, TILE_SIZE / 2)
+         local explosionX = (explosion.x - 1) * TILE_SIZE + TILE_SIZE / 2
+         local explosionY = (explosion.y - 1) * TILE_SIZE + TILE_SIZE / 2
+
+         love.graphics.setColor(explosion.color.r, explosion.color.g, explosion.color.b)
+         love.graphics.circle("fill", explosionX, explosionY, TILE_SIZE / 2)
       end
    end
 
-   -- Draw game timer
-   currentTime = love.timer.getTime() - startTime
-   local timerText = string.format("%.2f", currentTime)
-   local timerFont = love.graphics.newFont(20)
-   love.graphics.setFont(timerFont)
-   love.graphics.print(timerText, love.graphics.getWidth() / 2 - timerFont:getWidth(timerText) / 2, 20)
+   -- Reset color to white before drawing the timer
+   love.graphics.setColor(255, 255, 255)
+
+	ui.drawTimer()
+
+ui.drawLevelIndicator()
 
    -- Draw player
    love.graphics.setColor(255, 255, 255) -- Set color to white
    love.graphics.circle("fill", player.x + player.width / 2, player.y + player.height / 2, player.width / 2)
-
-   -- Check collision with explosions
-   for i, explosion in ipairs(explosion.getCurrentExplosions()) do
-      if explosion.active and collision.checkCollision(player, explosion) then
-         -- Handle collision with explosion (e.g., player loses a life, reset level, etc.)
-         resetLevel()
-      end
-   end
-
-   -- Fade out explosions quickly
-   for i, explosion in ipairs(explosion.getCurrentExplosions()) do
-      if explosion.active then
-         explosion.alpha = explosion.alpha - 500 * dt
-         if explosion.alpha <= 0 then
-            explosion.active = false
-         end
-      end
-   end
 
    -- Draw end screen popup if the level is complete
    if levelComplete then
@@ -258,32 +317,49 @@ function love.draw()
 end
 
 function resetLevel()
-	tileMap = level.load()
+  -- Load the tile map from tilemap.csv
+  tileMap = level.load()
 
-   -- Calculate the center position of the spawn platform
-   local spawnX, spawnY
+  -- Clear existing explosions
+  explosions = {}
 
-   for y = 1, #tileMap do
-      for x = 1, #tileMap[y] do
-         if tileMap[y][x] == "s" then
-            spawnX = (x - 1) * TILE_SIZE
-            spawnY = (y - 1) * TILE_SIZE
-            break
-         end
+  -- Create explosions based on the explosionSequence data
+  for _, explosionData in ipairs(explosionSequence) do
+    local explosion = {
+      x = explosionData.x,
+      y = explosionData.y,
+      active = false,
+      timer = 0,
+      delay = explosionData.delay,
+      duration = explosionData.duration,
+    }
+    table.insert(explosions, explosion)
+  end
+
+  -- Calculate the center position of the spawn platform
+  local spawnX, spawnY
+
+  for y = 1, #tileMap do
+    for x = 1, #tileMap[y] do
+      if tileMap[y][x] == "s" then
+        spawnX = (x - 1) * TILE_SIZE
+        spawnY = (y - 1) * TILE_SIZE
+        break
       end
-      if spawnX and spawnY then
-         break
-      end
-   end
+    end
+    if spawnX and spawnY then
+      break
+    end
+  end
 
-   -- Set the player's initial position to be centered on the spawn platform
-   player.x = spawnX + TILE_SIZE / 2 - player.width / 2
-   player.y = spawnY + TILE_SIZE / 2 - player.height / 2
+  -- Set the player's initial position to be centered on the spawn platform
+  player.x = spawnX + TILE_SIZE / 2 - player.width / 2
+  player.y = spawnY + TILE_SIZE / 2 - player.height / 2
 
-   collision.calculateBounds(spawnPoint, endPoint)
+  collision.calculateBounds(spawnPoint, endPoint)
 
-   levelComplete = false
-   startTime = love.timer.getTime()  -- Reset the starting time
+  levelComplete = false
+  startTime = love.timer.getTime() -- Reset the starting time
 end
 
 function love.mousepressed(x, y, button)

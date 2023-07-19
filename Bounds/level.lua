@@ -1,6 +1,4 @@
 local level = {}
-local explosion = require("explosion")
-
 local currentLevel = 1
 local totalLevels = 3  -- Update with the total number of levels you have
 
@@ -17,11 +15,7 @@ function level.load()
       table.insert(tileMap, row)
    end
 
-   -- Load the explosion sequences for the current level
-   local explosionFile = string.format("explosion%s.csv", currentLevel)
-   local explosionSequences = explosion.loadSequencesFromCSV(explosionFile)
-
-   return tileMap, explosionSequences
+   return tileMap
 end
 
 function level.nextLevel()

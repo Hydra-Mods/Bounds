@@ -18,13 +18,6 @@ function collision.calculateBounds(spawnPoint, endPoint)
    endBounds.bottom = endPoint.y + TILE_SIZE
 end
 
-function collision.checkTileCollision(x, y, tileMap)
-   -- Perform collision detection based on tile map
-   -- ...
-
-   -- Return true if collision occurred, false otherwise
-end
-
 function collision.checkPlayerCollision(player, tileMap, tileX, tileY)
    -- Check if the player collides with any solid tiles
    if tileMap[tileY][tileX] == "0" then
