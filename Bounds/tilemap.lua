@@ -3,18 +3,18 @@ local tilemap = {}
 local TILE_SIZE = 32
 
 local tileImages = {
-   ["s"] = love.graphics.newImage("s.png"),
-   ["e"] = love.graphics.newImage("e.png"),
-   ["0"] = love.graphics.newImage("0.png"),
-   ["1"] = love.graphics.newImage("1.png"),
-   ["2"] = love.graphics.newImage("2.png"),
-   ["3"] = love.graphics.newImage("3.png"),
-   ["4"] = love.graphics.newImage("4.png"),
-   ["5"] = love.graphics.newImage("5.png"),
-   ["6"] = love.graphics.newImage("6.png"),
-   ["7"] = love.graphics.newImage("7.png"),
-   ["8"] = love.graphics.newImage("8.png"),
-   ["9"] = love.graphics.newImage("9.png"),
+   ["s"] = love.graphics.newImage("Assets/s.png"),
+   ["e"] = love.graphics.newImage("Assets/e.png"),
+   ["0"] = love.graphics.newImage("Assets/0.png"),
+   ["1"] = love.graphics.newImage("Assets/1.png"),
+   ["2"] = love.graphics.newImage("Assets/2.png"),
+   ["3"] = love.graphics.newImage("Assets/3.png"),
+   ["4"] = love.graphics.newImage("Assets/4.png"),
+   ["5"] = love.graphics.newImage("Assets/5.png"),
+   ["6"] = love.graphics.newImage("Assets/6.png"),
+   ["7"] = love.graphics.newImage("Assets/7.png"),
+   ["8"] = love.graphics.newImage("Assets/8.png"),
+   ["9"] = love.graphics.newImage("Assets/9.png"),
 }
 
 function tilemap.load()

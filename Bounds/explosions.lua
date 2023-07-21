@@ -23,13 +23,18 @@ function explosions.initialize(triggers)
    for _, indexTriggers in ipairs(triggers) do
       local explosionGroup = {}
       for _, triggerData in ipairs(indexTriggers) do
-         table.insert(explosionGroup, createExplosion(triggerData[1], triggerData[2], triggerData[4], triggerData[5], triggerData[6]))
+         table.insert(explosionGroup, createExplosion(triggerData[1], triggerData[2], triggerData[3], triggerData[4], triggerData[5]))
       end
       table.insert(explosions.list, explosionGroup)
    end
 
    -- Store triggers data in the explosions table
    explosions.currentTriggers = triggers
+   
+   if triggers.Delay and type(triggers.Delay) == "number" then
+      explosionDelay = triggers.Delay
+	  explosionTimer = explosionDelay
+   end
 end
 
 function explosions.update(dt)

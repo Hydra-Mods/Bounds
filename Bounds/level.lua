@@ -1,6 +1,6 @@
 local level = {}
 local currentLevel = 1
-local totalLevels = 3  -- Update with the total number of levels you have
+local totalLevels = 4  -- Update with the total number of levels you have
 
 function level.load() -- Load the tile map from the current level file
    local file = string.format("level%s.csv", currentLevel)

@@ -10,6 +10,8 @@ local endscreen = require("endscreen")
 local scorescreen = require("scorescreen")
 
 function love.load()
+   love.window.setTitle("Blast Runner")
+
    -- Set up the game states
    gamestate.registerState("startscreen", startscreen)
    gamestate.registerState("gamescreen", gamescreen)
