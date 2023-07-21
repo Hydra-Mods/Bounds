@@ -11,7 +11,7 @@ local triggers = {
       {20, 10, 0, 255, 255, 0},
       {22, 10, 0, 255, 255, 0},
    },
--- our built in delay happens
+
    { -- Index 2, All of these explosions would play at once
       {5, 10, 0, 255, 255, 0},
       {7, 10, 0, 255, 255, 0},
@@ -23,7 +23,7 @@ local triggers = {
       {19, 10, 0, 255, 255, 0},
       {21, 10, 0, 255, 255, 0},
    },
--- our built in delay happens
+
    { -- Index 3, All of these explosions would play at once
       {17, 9, 0, 255, 255, 0},
       {9, 11, 0, 255, 255, 0},

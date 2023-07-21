@@ -66,29 +66,45 @@ function gamescreen.exit()
 
 end
 
+local PLAYER_COLLISION_THRESHOLD = 16 -- Adjust this value as needed for better collision detection
+
 function gamescreen.update(dt) -- Update the current game state-specific logic
    controls.handleInput() -- Handle player controls
 
-   -- Calculate the player's tile position (Collision detection)
-   local playerTileX = math.floor((player.x + player.width / 2) / TILE_SIZE) + 1
-   local playerTileY = math.floor((player.y + player.height / 2) / TILE_SIZE) + 1
+   -- Update player movement
+   player.update(dt)
 
-   -- Check collision with void tiles ("0")
-   if collision.checkPlayerCollision(player, currentTileMap, playerTileX, playerTileY) then
-      -- Handle collision with void tile (stop player movement)
-      if player.velocityX < 0 and currentTileMap[playerTileY][playerTileX + 1] ~= "0" then
-         player.x = prevX  -- Sliding along the left wall
-      elseif player.velocityX > 0 and currentTileMap[playerTileY][playerTileX - 1] ~= "0" then
-         player.x = prevX  -- Sliding along the right wall
-      elseif player.velocityY < 0 and currentTileMap[playerTileY + 1][playerTileX] ~= "0" then
-         player.y = prevY  -- Sliding along the top wall
-      elseif player.velocityY > 0 and currentTileMap[playerTileY - 1][playerTileX] ~= "0" then
-         player.y = prevY  -- Sliding along the bottom wall
+   -- Check for finish platform collision
+   local playerX, playerY = player.getPosition()
+   if collision.checkFinishPlatformCollision(playerX, playerY) then
+      -- Player has reached the finish platform, set game state to "endscreen"
+      gamestate.setState("endscreen")
+   end
+
+   -- Check for collision with void tiles
+   local tileX = math.floor(playerX / TILE_SIZE) + 1
+   local tileY = math.floor(playerY / TILE_SIZE) + 1
+   if currentTileMap[tileY][tileX] == "0" then
+      -- Player collided with a void tile, respawn the player at the spawn point
+      player.setPosition(spawnPoint.x, spawnPoint.y)
+   end
+
+   -- Check for collision with active explosions
+   for _, explosionGroup in ipairs(explosions.list) do
+      for _, explosion in ipairs(explosionGroup) do
+         if explosion.active then
+            local explosionX = (explosion.x - 1) * TILE_SIZE + TILE_SIZE / 2
+            local explosionY = (explosion.y - 1) * TILE_SIZE + TILE_SIZE / 2
+
+            -- Calculate the distance between the player and the explosion center
+            local distance = math.sqrt((playerX - explosionX) ^ 2 + (playerY - explosionY) ^ 2)
+
+            -- If the player is close enough to an active explosion, respawn the player at the spawn point
+            if distance < PLAYER_COLLISION_THRESHOLD then
+               player.setPosition(spawnPoint.x, spawnPoint.y)
+            end
+         end
       end
-   else
-      -- Update player position based on velocity (move player if there's no collision)
-      player.x = player.x + player.velocityX * dt
-      player.y = player.y + player.velocityY * dt
    end
 
    explosions.update(dt) -- Update explosions

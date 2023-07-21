@@ -28,6 +28,11 @@ function player.update(dt)
    player.y = player.y + player.velocityY * dt
 end
 
+function player.setPosition(x, y)
+   player.x = x
+   player.y = y
+end
+
 function player.getPosition()
    return player.x, player.y
 end
