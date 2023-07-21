@@ -58,10 +58,27 @@ function collision.checkPlayerCollision(player, tileMap, tileX, tileY)
    return false
 end
 
-function collision.checkPlayerBounds(player, tileMap, tileX, tileY, tileType)
-   if tileMap[tileY] and tileMap[tileY][tileX] then
-      local tile = tileMap[tileY][tileX]
-      return tile == tileType
+function collision.checkEndPointCollision(player)
+   -- Check if the player collides with the end point (finish platform)
+   local playerRight = player.x + player.width
+   local playerBottom = player.y + player.height
+
+   if playerRight >= endBounds.left and player.x <= endBounds.right and
+      playerBottom >= endBounds.top and player.y <= endBounds.bottom then
+      return true
+   end
+
+   return false
+end
+
+function collision.checkSpawnPointCollision(player)
+   -- Check if the player collides with the spawn point
+   local playerRight = player.x + player.width
+   local playerBottom = player.y + player.height
+
+   if playerRight >= spawnBounds.left and player.x <= spawnBounds.right and
+      playerBottom >= spawnBounds.top and player.y <= spawnBounds.bottom then
+      return true
    end
 
    return false
