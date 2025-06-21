@@ -1,140 +1,170 @@
 local gamescreen = {}
 
 local ui = require("ui")
-local level = require("level")
 local collision = require("collision")
-local explosions = require("explosions")
 local gamestate = require("gamestate")
-local triggers = require("triggers1")
 local player = require("player")
 local controls = require("controls")
 local tilemap = require("tilemap")
+local explosions = require("explosions")
+local camera = require("camera")
+local zones = require("zones")
+local triggers = require("triggers")
+local parallax = require("parallax")
+local minimap = require("minimap")
+local deathtrail = require("deathtrail")
+local effects = require("effects")
+local nineslice = require("nineslice")
+local pause = require("pause")
+--local bot = require("bot")
+local dev = require("dev")
 
--- Define variables and constants specific to the game screen
-local spawnPoint = {}
-local endPoint = {}
+-- Game state variables
 local currentTileMap = {}
 local gameWon = false
 local levelComplete = false
 local startTime = 0
 local levelCompleteTime = 0
 local currentTime = 0
+local debugMessage = ""
 
 local TILE_SIZE = 32
+local PLAYER_COLLISION_THRESHOLD = 16
 
 function gamescreen.enter()
-   currentTileMap = level.load() -- Load the tile map from the level module
+   zones.loadWorld()
+	zones.enterZone(zones.data[1])
+   currentTileMap = zones.getTileMap()
+   triggerTimer = 0
+   triggerIndex = 1
+   explosions.clear()
 
-   -- Find the spawn point and end point on the tile map
-   for y = 1, #currentTileMap do
-      for x = 1, #currentTileMap[y] do
-         if currentTileMap[y][x] == "s" then
-            spawnPoint.x = (x - 1) * TILE_SIZE
-            spawnPoint.y = (y - 1) * TILE_SIZE
-         elseif currentTileMap[y][x] == "e" then
-            endPoint.x = (x - 1) * TILE_SIZE
-            endPoint.y = (y - 1) * TILE_SIZE
-         end
-      end
-   end
+	local playerSize = TILE_SIZE / 2
+	local sp = zones.initialSpawnPoint
+	zones.spawnPoint = sp
 
-   local spawnX, spawnY -- Calculate the center position of the spawn platform
+	-- Center player on tile
+	local spawnX = sp.x - playerSize / 2
+	local spawnY = sp.y - playerSize / 2
 
-   for y = 1, #currentTileMap do
-      for x = 1, #currentTileMap[y] do
-         if currentTileMap[y][x] == "s" then
-            spawnX = (x - 1) * TILE_SIZE
-            spawnY = (y - 1) * TILE_SIZE
-            break
-         end
-      end
-      if spawnX and spawnY then
-         break
-      end
-   end
+	player.initialize(spawnX, spawnY, playerSize)
 
-   collision.calculateBounds(spawnPoint, endPoint)
+   ui.initLevel(1)
 
-	player.initialize(spawnX, spawnY, TILE_SIZE)
+   parallax.load() -- ?
+   effects.load()
 
-   ui.initLevel(1) -- Initialize the UI for the level (if applicable)
-
-	explosions.initialize(triggers) -- Initialize explosions
+   --bot.start(4, 10, 22, 10, zones.getTileMap())
 end
 
 function gamescreen.exit()
-
 end
 
-local PLAYER_COLLISION_THRESHOLD = 16 -- Adjust this value as needed for better collision detection
+function gamescreen.update(dt)
+   if pause.isActive() then return end
 
-function gamescreen.update(dt) -- Update the current game state-specific logic
-   controls.handleInput() -- Handle player controls
+   controls.handleInput()
 
-   -- Update player movement
-   player.update(dt)
+   local px, py = player.getPosition()
+   local vx, vy = player.getVelocity()
+   local pw, ph = player.width, player.height
 
-   -- Check for finish platform collision
-   local playerX, playerY = player.getPosition()
-   if collision.checkFinishPlatformCollision(playerX, playerY) then
-      -- Player has reached the finish platform, set game state to "endscreen"
-      gamestate.setState("endscreen")
-   end
+   camera.update(dt)
 
-   -- Check for collision with void tiles
-   local tileX = math.floor(playerX / TILE_SIZE) + 1
-   local tileY = math.floor(playerY / TILE_SIZE) + 1
-   if currentTileMap[tileY][tileX] == "0" then
-      -- Player collided with a void tile, respawn the player at the spawn point
-      player.setPosition(spawnPoint.x, spawnPoint.y)
-   end
+   local newX, newY, newVX, newVY = collision.resolvePlayerCollision(
+      px, py, vx, vy, dt, currentTileMap, pw, ph
+   )
 
-   -- Check for collision with active explosions
-   for _, explosionGroup in ipairs(explosions.list) do
-      for _, explosion in ipairs(explosionGroup) do
-         if explosion.active then
-            local explosionX = (explosion.x - 1) * TILE_SIZE + TILE_SIZE / 2
-            local explosionY = (explosion.y - 1) * TILE_SIZE + TILE_SIZE / 2
+   player.setPosition(newX, newY)
+   player.setVelocity(newVX, newVY)
 
-            -- Calculate the distance between the player and the explosion center
-            local distance = math.sqrt((playerX - explosionX) ^ 2 + (playerY - explosionY) ^ 2)
+	triggers.update(dt)
+   explosions.update(dt)
 
-            -- If the player is close enough to an active explosion, respawn the player at the spawn point
-            if distance < PLAYER_COLLISION_THRESHOLD then
-               player.setPosition(spawnPoint.x, spawnPoint.y)
-            end
+	if collision.checkCheckpointCollision(px, py, pw, ph) then
+	   debugMessage = "Inside checkpoint area"
+	   zones.checkCheckpoint()
+	else
+	   debugMessage = ""
+	end
+
+   local left = math.floor(px / TILE_SIZE) + 1
+   local right = math.floor((px + pw - 1) / TILE_SIZE) + 1
+   local top = math.floor(py / TILE_SIZE) + 1
+   local bottom = math.floor((py + ph - 1) / TILE_SIZE) + 1
+
+   for ty = top, bottom do
+      for tx = left, right do
+         if explosions.isTileExploding(tx, ty) then
+			effects.spawnPuff(px, py)
+			deathtrail.add(px + pw / 2, py + ph / 2)
+			local sp = zones.spawnPoint
+			local spawnX = sp.x - player.width / 2
+			local spawnY = sp.y - player.height / 2
+			player.setPosition(spawnX, spawnY)
+            ui.incrementRespawns()
+            return
          end
       end
    end
 
-   explosions.update(dt) -- Update explosions
+	effects.update(dt)
+	ui.update(dt)
 
-   -- Update the UI for the level (if applicable)
    currentTime = ui.updateTimer()
+
+   --bot.update(dt)
 end
 
-function gamescreen.draw() -- Implement the love.draw() function for rendering game state-specific graphics
-	tilemap.draw(currentTileMap) -- Draw the level based on the tile map
+function gamescreen.draw()
+   love.graphics.push()
+   local camX, camY = camera.getOffset()
+   parallax.draw(camX, camY)
+   love.graphics.translate(camX, camY)
 
-   love.graphics.setColor(255, 255, 255)
+   tilemap.draw()
+   explosions.draw()
+   effects.draw()
+   player.draw()
+	deathtrail.draw()
+   love.graphics.pop()
 
-   explosions.draw() -- Draw explosions
+   ui.draw()
+   --minimap.draw(zones, player)
 
-   love.graphics.setColor(255, 255, 255) -- Reset color to white before drawing the timer
+   --[[ debug tile text
+	for y = 1, #currentTileMap do
+	   for x = 1, #currentTileMap[y] do
+		  local tile = currentTileMap[y][x]
+		  if tile and tile ~= "0" then
+			 love.graphics.setColor(1, 1, 1)
+			 love.graphics.print(tile, (x - 1) * TILE_SIZE, (y - 1) * TILE_SIZE)
+		  end
+	   end
+	end]]
 
-   ui.drawTimer()
+	dev.draw(player, zones)
+	--bot.draw()
 
-   ui.drawLevelIndicator()
-
-	player.draw()
+   if pause.isActive() then
+      pause.draw()
+   end
 end
 
 function gamescreen.mousepressed(x, y, button)
-   -- Implement the game state-specific mouse click handling logic, if needed.
+   if pause.mousepressed(x, y, button) then return end
+end
+
+function gamescreen.gamepadpressed(joystick, button)
+   if pause.handleGamepadPressed(joystick, button) then return end
 end
 
 function gamescreen.keypressed(key)
-   -- Implement the game state-specific key press handling logic, if needed.
+	if pause.handleKey(key) then return end
+
+    if key == "f1" or key == "`" then
+        dev.toggle()
+    end
 end
 
 return gamescreen

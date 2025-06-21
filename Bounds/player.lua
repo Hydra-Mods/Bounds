@@ -1,14 +1,15 @@
 local player = {}
 
+local TILE_SIZE = 32
 local MOVE_SPEED = 200
 
-function player.initialize(spawnX, spawnY, tileSize)
-   player.width = tileSize / 2
-   player.height = tileSize / 2
+function player.initialize(x, y, size)
+   player.width = size
+   player.height = size
+   player.x = x
+   player.y = y
    player.velocityX = 0
    player.velocityY = 0
-   player.x = spawnX + tileSize / 2 - player.width / 2
-   player.y = spawnY + tileSize / 2 - player.height / 2
 end
 
 function player.setVelocity(velocityX, velocityY)
@@ -16,16 +17,19 @@ function player.setVelocity(velocityX, velocityY)
    player.velocityY = velocityY
 end
 
+function player.getVelocity()
+   return player.velocityX, player.velocityY
+end
+
 function player.draw()
    local playerX, playerY = player.getPosition()
-   love.graphics.setColor(255, 255, 255) -- Set color to white
+   love.graphics.setColor(255, 255, 255)
    love.graphics.circle("fill", playerX + player.width / 2, playerY + player.height / 2, player.width / 2)
 end
 
+-- Removed the call to collision module
 function player.update(dt)
-   -- Update player's position based on velocity and delta time (dt)
-   player.x = player.x + player.velocityX * dt
-   player.y = player.y + player.velocityY * dt
+   -- No logic here anymore, handled externally
 end
 
 function player.setPosition(x, y)

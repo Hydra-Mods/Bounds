@@ -1,84 +1,97 @@
 local endscreen = {}
 
 local ui = require("ui")
+local gamestate = require("gamestate")
 
 local nextLevelAvailable = false
+
+-- Track mouse interaction
+local mouseX, mouseY = 0, 0
+
+-- Button constants
+local buttonWidth = 200
+local buttonHeight = 40
+local buttonX = 300
+local nextY = 280
+local function replayY() return nextLevelAvailable and 340 or 280 end
 
 function endscreen.enter(canProceed)
    nextLevelAvailable = canProceed
 end
 
 function endscreen.exit()
-   -- Reset end screen-specific variables here
+   -- Reset UI for next level
+   ui.resetRespawns()
+   ui.resetTimer()
 end
 
 function endscreen.update(dt)
-   -- Update end screen-specific logic here
+   mouseX, mouseY = love.mouse.getPosition()
 end
 
 function endscreen.mousepressed(x, y, button)
-   -- Handle mouse click events on the end screen
-
-   -- Check if "Replay Level" button is clicked
-   if x >= 300 and x <= 500 and y >= 250 and y <= 290 then
-      endscreen.exit()
-      love.event.quit("restart") -- Restart the game to replay the level
+   if nextLevelAvailable and
+      x >= buttonX and x <= buttonX + buttonWidth and
+      y >= nextY and y <= nextY + buttonHeight then
+         endscreen.exit()
+         gamestate.setState("gamescreen", true) -- Proceed to next level
    end
 
-   -- Check if "Next Level" button is clicked
-   if nextLevelAvailable and x >= 300 and x <= 500 and y >= 310 and y <= 350 then
-      endscreen.exit()
-      love.event.quit("next") -- Move on to the next level
+   if x >= buttonX and x <= buttonX + buttonWidth and
+      y >= replayY() and y <= replayY() + buttonHeight then
+         endscreen.exit()
+         gamestate.setState("gamescreen", false) -- Replay same level (or just reset player state)
    end
 end
 
 function endscreen.keypressed(key)
-   -- Handle key press events on the end screen
-
-   -- Pressing any key will have the same effect as clicking the "Next Level" button
    if nextLevelAvailable then
       endscreen.exit()
-      love.event.quit("next") -- Move on to the next level
+      gamestate.setState("gamescreen", true)
    end
 end
 
 function endscreen.draw()
-   -- Draw the end screen UI elements
+   love.graphics.setColor(0, 0, 0, 0.8)
+   love.graphics.rectangle("fill", 200, 150, 400, 340)
 
-   love.graphics.setColor(0, 0, 0, 0.8)  -- Semi-transparent black background
-   love.graphics.rectangle("fill", 200, 150, 400, 250)
-
-   love.graphics.setColor(255, 255, 255)  -- White text color
+   love.graphics.setColor(255, 255, 255)
    love.graphics.setFont(love.graphics.newFont(24))
    love.graphics.printf("Level Complete!", 200, 180, 400, "center")
 
-   -- Get level complete time from the ui module
    local levelCompleteTime = ui.getLevelCompleteTime()
-
-   local levelCompleteTimeText = string.format("Level Time: %.2f seconds", levelCompleteTime)
    love.graphics.setFont(love.graphics.newFont(18))
-   love.graphics.printf(levelCompleteTimeText, 200, 220, 400, "center")
+   love.graphics.printf(string.format("Level Time: %.2f seconds", levelCompleteTime), 200, 220, 400, "center")
 
-   local replayText = "Replay Level"
-   local nextLevelText = "Next Level"
-   local buttonText = replayText  -- Text on the button
-   local buttonY = 250  -- Y-coordinate for button positioning
+   local respawns = ui.getRespawnCount()
+   love.graphics.printf("Respawns: " .. respawns, 200, 250, 400, "center")
 
-   if nextLevelAvailable then
-      buttonText = nextLevelText
-      buttonY = 310
+   local function drawButton(label, x, y)
+      local isHovered = mouseX >= x and mouseX <= x + buttonWidth and mouseY >= y and mouseY <= y + buttonHeight
+      local isClicked = love.mouse.isDown(1) and isHovered
+
+      local scale = isHovered and (isClicked and 0.95 or 1.05) or 1.0
+      local color = isHovered and {150, 150, 150} or {100, 100, 100}
+
+      love.graphics.setColor(color)
+      love.graphics.push()
+      love.graphics.translate(x + buttonWidth / 2, y + buttonHeight / 2)
+      love.graphics.scale(scale, scale)
+      love.graphics.rectangle("fill", -buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight)
+      love.graphics.pop()
+
+      love.graphics.setColor(0, 0, 0)
+      local font = love.graphics.getFont()
+      local textX = x + buttonWidth / 2 - font:getWidth(label) / 2
+      local textY = y + buttonHeight / 2 - font:getHeight() / 2
+      love.graphics.print(label, textX, textY)
    end
 
-   local buttonWidth = 200
-   local buttonHeight = 40
+   if nextLevelAvailable then
+      drawButton("Next Level", buttonX, nextY)
+   end
 
-   -- Draw replay/next level button
-   love.graphics.setColor(255, 255, 255)  -- White button background
-   love.graphics.rectangle("fill", 300, buttonY, buttonWidth, buttonHeight)
-
-   love.graphics.setColor(0, 0, 0)  -- Black button text color
-   love.graphics.setFont(love.graphics.newFont(18))
-   love.graphics.printf(buttonText, 300, buttonY + 10, buttonWidth, "center")
+   drawButton("Replay Level", buttonX, replayY())
 end
 
 return endscreen

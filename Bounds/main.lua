@@ -1,44 +1,58 @@
-local ui = require("ui")
-local level = require("level")
-local collision = require("collision")
-local triggers = require("triggers1")
 local gamestate = require("gamestate")
-
-local startscreen = require("startscreen")
+local titlescreen = require("titlescreen")
 local gamescreen = require("gamescreen")
-local endscreen = require("endscreen")
-local scorescreen = require("scorescreen")
+local settingsscreen = require("settingsscreen")
+local audio = require("audio")
+local settings = require("settings")
 
 function love.load()
-   love.window.setTitle("Blast Runner")
+	love.window.setTitle("Bounds")
 
-   -- Set up the game states
-   gamestate.registerState("startscreen", startscreen)
-   gamestate.registerState("gamescreen", gamescreen)
-   gamestate.registerState("endscreen", endscreen)
-   gamestate.registerState("scorescreen", scorescreen)
+	love.graphics.setDefaultFilter("nearest", "nearest")
 
-   -- Set the initial game state to start screen
-   gamestate.setState("startscreen")
+	settings.load()
+	audio.load()
+	audio.playMusic()
+
+	-- Set up the game states
+	gamestate.registerState("titlescreen", titlescreen)
+	gamestate.registerState("gamescreen", gamescreen)
+	gamestate.registerState("settingsscreen", settingsscreen)
+
+	-- Set the initial game state to start screen
+	gamestate.setState("titlescreen")
 end
 
 function love.update(dt)
-   -- Update the current game state
-   --gamestate.currentState.update(dt)
-   gamestate.update(dt)
+	gamestate.update(dt)
 end
 
 function love.draw()
-   -- Draw the current game state
-   gamestate.currentState.draw()
+	gamestate.currentState.draw()
 end
 
 function love.keypressed(key)
-   -- Pass keypress events to the current game state
-   gamestate.currentState.keypressed(key)
+	gamestate.currentState.keypressed(key)
+end
+
+function love.gamepadpressed(joystick, button)
+	if gamestate.currentState.handleGamepadPressed then
+		gamestate.currentState.handleGamepadPressed(joystick, button)
+	end
 end
 
 function love.mousepressed(x, y, button)
-   -- Pass mouse click events to the current game state
-   gamestate.currentState.mousepressed(x, y, button)
+	gamestate.currentState.mousepressed(x, y, button)
+end
+
+function love.mousereleased(x, y, button)
+	if gamestate.currentState.mousereleased then
+		gamestate.currentState.mousereleased(x, y, button)
+	end
+end
+
+function love.mousemoved(x, y, dx, dy)
+	if gamestate.currentState.mousemoved then
+		gamestate.currentState.mousemoved(x, y, dx, dy)
+	end
 end

@@ -1,82 +1,87 @@
 local explosions = {}
 
+local explosionSets = {
+   {
+      love.graphics.newImage("Assets/Explosions/exp1.png"),
+      love.graphics.newImage("Assets/Explosions/exp2.png"),
+      love.graphics.newImage("Assets/Explosions/exp3.png"),
+      love.graphics.newImage("Assets/Explosions/exp4.png"),
+   },
+   {
+      love.graphics.newImage("Assets/Explosions/blue_exp1.png"),
+      love.graphics.newImage("Assets/Explosions/blue_exp2.png"),
+      love.graphics.newImage("Assets/Explosions/blue_exp3.png"),
+      love.graphics.newImage("Assets/Explosions/blue_exp4.png"),
+   },
+   -- Add more explosion sets here
+}
+
 local TILE_SIZE = 32
-local currentIndex = 1
-local explosionDelay = 1 -- Adjust the delay as needed (in seconds)
-local explosionTimer = explosionDelay
+local frameDuration = 0.1
+local explosionDuration = 4 * frameDuration -- 4 is the frames
 
-local function createExplosion(x, y, r, g, b)
-   return {
-      x = x,
-      y = y,
-      active = false,
-      r = r,
-      g = g,
-      b = b,
-   }
-end
+-- Table of active explosions
+local activeExplosions = {}
 
-function explosions.initialize(triggers)
-   explosions.list = {}
-
-   -- Create explosions based on the trigger data
-   for _, indexTriggers in ipairs(triggers) do
-      local explosionGroup = {}
-      for _, triggerData in ipairs(indexTriggers) do
-         table.insert(explosionGroup, createExplosion(triggerData[1], triggerData[2], triggerData[3], triggerData[4], triggerData[5]))
-      end
-      table.insert(explosions.list, explosionGroup)
+function explosions.spawn(tileX, tileY, color, setIndex)
+   for _, exp in ipairs(activeExplosions) do
+      if exp.x == tileX and exp.y == tileY then return end
    end
 
-   -- Store triggers data in the explosions table
-   explosions.currentTriggers = triggers
-   
-   if triggers.Delay and type(triggers.Delay) == "number" then
-      explosionDelay = triggers.Delay
-	  explosionTimer = explosionDelay
-   end
+   setIndex = setIndex or 1
+
+   table.insert(activeExplosions, {
+      x = tileX,
+      y = tileY,
+      color = color or {255, 255, 0},
+      timer = 0,
+      set = explosionSets[setIndex]
+   })
 end
 
 function explosions.update(dt)
-   explosionTimer = explosionTimer - dt
+   for i = #activeExplosions, 1, -1 do
+      local exp = activeExplosions[i]
+      exp.timer = exp.timer + dt
 
-   if explosionTimer <= 0 then
-      -- Update all active explosions in the current index
-      for _, explosion in ipairs(explosions.list[currentIndex]) do
-         if explosion.active then
-            explosion.active = false
-         end
+      if exp.timer >= explosionDuration then
+         table.remove(activeExplosions, i)
       end
-
-      currentIndex = currentIndex % #explosions.list + 1
-
-      -- Set all explosions in the new current index to active at once
-      for _, explosion in ipairs(explosions.list[currentIndex]) do
-         if not explosion.active then
-            explosion.active = true
-         end
-      end
-
-      -- Update explosionTimer after the loop
-      explosionTimer = explosionDelay
    end
 end
 
 function explosions.draw()
-   for _, explosionGroup in ipairs(explosions.list) do
-      for _, explosion in ipairs(explosionGroup) do
-         if explosion.active then
-            local explosionX = (explosion.x - 1) * TILE_SIZE + TILE_SIZE / 2
-            local explosionY = (explosion.y - 1) * TILE_SIZE + TILE_SIZE / 2
+   for _, exp in ipairs(activeExplosions) do
+      local frames = exp.set
+      local frameIndex = math.min(math.floor(exp.timer / frameDuration) + 1, #frames)
+      local img = frames[frameIndex]
+      local imageWidth, imageHeight = img:getDimensions()
+      local scale = TILE_SIZE / math.max(imageWidth, imageHeight)
 
-            love.graphics.setColor(explosion.r, explosion.g, explosion.b)
-            love.graphics.circle("fill", explosionX, explosionY, TILE_SIZE / 2)
-         end
-      end
+      local px = (exp.x - 1) * TILE_SIZE + TILE_SIZE / 2
+      local py = (exp.y - 1) * TILE_SIZE + TILE_SIZE / 2
+
+      local progress = exp.timer / explosionDuration
+      local alpha = 255 * (1 - progress^2)
+
+      love.graphics.setColor(exp.color[1], exp.color[2], exp.color[3], alpha)
+      love.graphics.draw(img, px, py, 0, scale, scale, imageWidth / 2, imageHeight / 2)
    end
 
-   -- Reset color to white after drawing the explosions
    love.graphics.setColor(255, 255, 255)
+end
+
+function explosions.clear()
+   activeExplosions = {}
+end
+
+function explosions.isTileExploding(tileX, tileY)
+   for _, exp in ipairs(activeExplosions) do
+      if exp.x == tileX and exp.y == tileY then
+         return true
+      end
+   end
+   return false
 end
 
 return explosions

@@ -1,87 +1,91 @@
 local collision = {}
 
-local spawnBounds = {}
-local endBounds = {}
+local player = require("player")
+local zones = require("zones")
 
 local TILE_SIZE = 32
 
-function collision.calculateBounds(spawnPoint, endPoint)
-   -- Calculate the boundaries of the spawn point and end point
-   spawnBounds.left = spawnPoint.x
-   spawnBounds.top = spawnPoint.y
-   spawnBounds.right = spawnPoint.x + TILE_SIZE
-   spawnBounds.bottom = spawnPoint.y + TILE_SIZE
+local COLLIDABLE_TILES = {
+   ["0"] = true,
+   ["a"] = true,
+   ["d"] = true,
+   ["f"] = true,
+   ["g"] = true,
+   ["h"] = true,
+   ["i"] = true,
+   ["j"] = true,
+   ["k"] = true,
+   ["l"] = true,
+   ["o"] = true,
+   ["q"] = true,
+   ["r"] = true,
+   ["t"] = true,
+   ["u"] = true,
+   ["w"] = true,
+   ["y"] = true,
+}
 
-   endBounds.left = endPoint.x
-   endBounds.top = endPoint.y
-   endBounds.right = endPoint.x + TILE_SIZE
-   endBounds.bottom = endPoint.y + TILE_SIZE
+local function tileAt(x, y, tileMap)
+	return tileMap[y] and tileMap[y][x]
 end
 
-function collision.checkPlayerCollision(x, y, tileMap, tileX, tileY)
-   -- Check if the player collides with any solid tiles
-   if tileMap[tileY][tileX] == "0" then
-      return true
-   end
+local function isBlocked(testX, testY, tileMap, width, height)
+   local left = testX
+   local right = testX + width
+   local top = testY
+   local bottom = testY + height
 
-   -- Calculate the player's bounding box coordinates
-   local playerLeft = x
-   local playerRight = x + TILE_SIZE
-   local playerTop = y
-   local playerBottom = y + TILE_SIZE
+   local leftTileX = math.floor(left / TILE_SIZE) + 1
+   local rightTileX = math.floor(right / TILE_SIZE) + 1
+   local topTileY = math.floor(top / TILE_SIZE) + 1
+   local bottomTileY = math.floor(bottom / TILE_SIZE) + 1
 
-   -- Calculate the tile coordinates of the player's edges
-   local leftTileX = math.floor(playerLeft / TILE_SIZE) + 1
-   local rightTileX = math.floor(playerRight / TILE_SIZE) + 1
-   local topTileY = math.floor(playerTop / TILE_SIZE) + 1
-   local bottomTileY = math.floor(playerBottom / TILE_SIZE) + 1
-
-   -- Check which edges are colliding with void tiles
-   local collideLeft = tileMap[topTileY][leftTileX] == "0" or tileMap[bottomTileY][leftTileX] == "0"
-   local collideRight = tileMap[topTileY][rightTileX] == "0" or tileMap[bottomTileY][rightTileX] == "0"
-   local collideTop = tileMap[topTileY][leftTileX] == "0" or tileMap[topTileY][rightTileX] == "0"
-   local collideBottom = tileMap[bottomTileY][leftTileX] == "0" or tileMap[bottomTileY][rightTileX] == "0"
-
-   -- Adjust player's position based on collision direction
-   if collideLeft and not collideRight then
-      x = (leftTileX * TILE_SIZE) + 1
-   elseif collideRight and not collideLeft then
-      x = (rightTileX - 1) * TILE_SIZE - TILE_SIZE - 1
-   end
-
-   if collideTop and not collideBottom then
-      y = (topTileY * TILE_SIZE) + 1
-   elseif collideBottom and not collideTop then
-      y = (bottomTileY - 1) * TILE_SIZE - TILE_SIZE - 1
-   end
-
-   return false
+   return
+      COLLIDABLE_TILES[tileAt(leftTileX, topTileY, tileMap)] or
+      COLLIDABLE_TILES[tileAt(rightTileX, topTileY, tileMap)] or
+      COLLIDABLE_TILES[tileAt(leftTileX, bottomTileY, tileMap)] or
+      COLLIDABLE_TILES[tileAt(rightTileX, bottomTileY, tileMap)]
 end
 
-function collision.checkFinishPlatformCollision(x, y)
-   -- Check if the player collides with the end point (finish platform)
-   local playerRight = x + TILE_SIZE
-   local playerBottom = y + TILE_SIZE
+function collision.resolvePlayerCollision(x, y, vx, vy, dt, tileMap, width, height)
+   local nextX = x + vx * dt
+   local nextY = y + vy * dt
 
-   if playerRight >= endBounds.left and x <= endBounds.right and
-      playerBottom >= endBounds.top and y <= endBounds.bottom then
-      return true
+   -- Try X movement first
+   local tryX = x + vx * dt
+   if not isBlocked(tryX, y, tileMap, width, height) then
+      x = tryX
+   else
+      vx = 0
    end
 
-   return false
+   -- Then try Y movement
+   local tryY = y + vy * dt
+   if not isBlocked(x, tryY, tileMap, width, height) then
+      y = tryY
+   else
+      vy = 0
+   end
+
+   return x, y, vx, vy
 end
 
-function collision.checkSpawnPointCollision(x, y)
-   -- Check if the player collides with the spawn point
-   local playerRight = x + TILE_SIZE
-   local playerBottom = y + TILE_SIZE
+function collision.checkCheckpointCollision(px, py, pw, ph)
+    local TILE_SIZE = 32
+    local zone = zones.data[zones.currentZone]
+    if not zone or not zone.checkpointArea then return false end
 
-   if playerRight >= spawnBounds.left and x <= spawnBounds.right and
-      playerBottom >= spawnBounds.top and y <= spawnBounds.bottom then
-      return true
-   end
+    local a = zone.checkpointArea
+    local cx = (a.x1 - 1) * TILE_SIZE
+    local cy = (a.y1 - 1) * TILE_SIZE
+    local cw = (a.x2 - a.x1 + 1) * TILE_SIZE
+    local ch = (a.y2 - a.y1 + 1) * TILE_SIZE
 
-   return false
+    -- AABB (Axis-Aligned Bounding Box) check
+    local overlap = px + pw > cx and px < cx + cw and
+                    py + ph > cy and py < cy + ch
+
+    return overlap
 end
 
 return collision
