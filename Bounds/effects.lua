@@ -1,4 +1,3 @@
--- effects.lua
 local effects = {}
 local puffFrames = {}
 local puffAnimations = {}
@@ -33,7 +32,6 @@ function effects.update(dt)
             end
         end
     end
-
 end
 
 function effects.draw()

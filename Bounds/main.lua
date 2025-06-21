@@ -36,8 +36,8 @@ function love.keypressed(key)
 end
 
 function love.gamepadpressed(joystick, button)
-	if gamestate.currentState.handleGamepadPressed then
-		gamestate.currentState.handleGamepadPressed(joystick, button)
+	if gamestate.currentState.gamepadpressed then
+		gamestate.currentState.gamepadpressed(joystick, button)
 	end
 end
 

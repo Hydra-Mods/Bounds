@@ -9,16 +9,16 @@ canvas:setFilter("nearest", "nearest")
 
 -- Define tile colors (edit to match your game style)
 local tileColors = {
-    ["s"] = {0.3, 0.3, 1.0},   -- spawn
-    ["c"] = {0.0, 1.0, 0.3},   -- checkpoint
-    ["e"] = {0.4, 0.3, 0.2},   -- end
-    ["1"] = {0.6, 0.6, 0.6},   -- generic platform
-    ["2"] = {0.5, 0.5, 0.5},
-    ["3"] = {0.7, 0.7, 0.7},
-    ["4"] = {0.7, 0.7, 0.7},
-    ["5"] = {0.7, 0.7, 0.7},
-    ["6"] = {0.7, 0.7, 0.7},
-    ["7"] = {0.7, 0.7, 0.7},
+	["s"] = {0.3, 0.3, 1.0},   -- spawn
+	["c"] = {0.0, 1.0, 0.3},   -- checkpoint
+	["e"] = {0.4, 0.3, 0.2},   -- end
+	["1"] = {0.6, 0.6, 0.6},   -- generic platform
+	["2"] = {0.5, 0.5, 0.5},
+	["3"] = {0.7, 0.7, 0.7},
+	["4"] = {0.7, 0.7, 0.7},
+	["5"] = {0.7, 0.7, 0.7},
+	["6"] = {0.7, 0.7, 0.7},
+	["7"] = {0.7, 0.7, 0.7},
     ["8"] = {0.7, 0.7, 0.7},
     ["9"] = {0.7, 0.7, 0.7},
     [" "] = {0, 0, 0, 0},      -- void
@@ -53,13 +53,7 @@ function minimap.draw(zones, player)
     -- Draw on screen (bottom-right corner by default)
     love.graphics.setColor(1, 1, 1)
     local margin = 10
-    love.graphics.draw(
-        canvas,
-        love.graphics.getWidth() - (CANVAS_WIDTH * SCALE) - margin,
-        love.graphics.getHeight() - (CANVAS_HEIGHT * SCALE) - margin,
-        0,
-        SCALE, SCALE
-    )
+    love.graphics.draw(canvas, love.graphics.getWidth() - (CANVAS_WIDTH * SCALE) - margin, love.graphics.getHeight() - (CANVAS_HEIGHT * SCALE) - margin, 0, SCALE, SCALE)
 end
 
 return minimap
