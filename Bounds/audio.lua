@@ -7,7 +7,7 @@ local audio = {
 	},
 	muted = {
 		music = false,
-		sfx = false,
+		sfx = false
 	}
 }
 
@@ -25,9 +25,13 @@ local musicTracks = {
 	"09 - Spiral of Plasma",
 }
 
+local function clamp(val, min, max)
+	return math.max(min, math.min(max, val))
+end
+
 function audio.load()
 	-- Load settings into audio state
-	audio.volume.music = settings.musicVolume or 1.0
+	audio.volume.music = clamp(settings.musicVolume or 1.0, 0, 1)
 	audio.volume.sfx = settings.sfxVolume or 1.0
 	audio.muted.music = settings.muteMusic or false
 	audio.muted.sfx = settings.muteSFX or false
@@ -40,8 +44,8 @@ function audio.load()
 	audio.music = love.audio.newSource(trackPath, "stream")
 	audio.music:setLooping(true)
 
-	local musicVol = audio.muted.music and 0 or audio.volume.music
-	audio.music:setVolume(musicVol)
+	local scaledVol = audio.muted.music and 0 or (audio.volume.music * 0.25)
+	audio.music:setVolume(scaledVol)
 
 	-- Load sounds
 	audio.sounds["Click"] = love.audio.newSource("Assets/Audio/Click.wav", "static")
@@ -68,22 +72,22 @@ end
 
 function audio.duckMusic()
 	if audio.music and not audio.muted.music then
-		audio.music:setVolume(audio.volume.music * 0.25)
+		audio.music:setVolume(audio.volume.music * 0.25 * 0.25)
 	end
 end
 
 function audio.restoreMusic()
 	if audio.music and not audio.muted.music then
-		audio.music:setVolume(audio.volume.music)
+		audio.music:setVolume(audio.volume.music * 0.25)
 	end
 end
 
 function audio.setMusicVolume(vol)
-	audio.volume.music = vol
-	settings.musicVolume = vol
-	local actualVol = audio.muted.music and 0 or vol
+	audio.volume.music = clamp(vol, 0, 1)
+	settings.musicVolume = audio.volume.music
+	local scaledVol = audio.muted.music and 0 or (audio.volume.music * 0.25)
 	if audio.music then
-		audio.music:setVolume(actualVol)
+		audio.music:setVolume(scaledVol)
 	end
 end
 

@@ -71,6 +71,10 @@ function gamescreen.update(dt)
 	triggers.update(dt)
 	explosions.update(dt)
 
+	if collision.checkCheckpointCollision(px, py, pw, ph) then
+	   zones.checkCheckpoint()
+	end
+
 	local left = math.floor(px / TILE_SIZE) + 1
 	local right = math.floor((px + pw - 1) / TILE_SIZE) + 1
 	local top = math.floor(py / TILE_SIZE) + 1
